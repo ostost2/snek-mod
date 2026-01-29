@@ -89,7 +89,7 @@ let chainContainerBuilding = () => extend(Building, {
 
         Vars.content.items().each(item => {
             if(this.items.has(item)){
-                items.remove(item, this.items.get(item) * percent);
+                this.items.remove(item, this.items.get(item) * percent);
             }
         });
     },
