@@ -1,0 +1,7 @@
+name: snek-mod
+displayName: Container Chaining
+description: Brings back the container chaining mechanic from Mindustry v4 beta
+author: estee
+
+version: 1.0
+minGameVersion: 154
