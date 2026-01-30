@@ -35,39 +35,12 @@ let chainContainerBuilding = () => extend(Building, {
         this._storageGraph.remove(this);
     },
 
-    canUnload() {
-        // if(this._storageGraph == null){
-        //     return this.super$canUnload();
-        // }
-
-        return this.super$canUnload();
-    },
     acceptItem(source, item) {
         // if(this._storageGraph == null){
         //     return this.items.get(item) < this.getMaximumAccepted(item);
         // }
 
         return this.items.get(item) < this.getMaximumAccepted(item);
-    },
-    handleItem(source, item) {
-        // if(this._storageGraph == null){
-        //     this.super$handleItem(source, item);
-        // }
-
-        this.super$handleItem(source, item);
-    },
-    itemTaken(item) {
-        // if(this._storageGraph == null){
-        //     this.super$itemTaken(item);
-        // }
-
-        this.super$itemTaken(item);
-    },
-    removeStack(item, amount) {
-        // if(this._storageGraph == null){
-        //     return this.super$removeStack(item, amount);
-        // }
-        return this.super$removeStack(item, amount);
     },
     getMaximumAccepted(item) {
         if (this._storageGraph == null) {
