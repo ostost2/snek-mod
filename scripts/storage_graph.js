@@ -7,12 +7,13 @@ let graphId = 0;
 function StorageGraph(self) {
     this.queue = new Queue();
     this.closedSet = new IntSet();
-    this.buildings = new Seq();
+    this.buildings = new Seq(); // currently not used anywhere, remove?
     this.items = new ItemModule();
+    this.itemCapacity = 0;
     this.graphId = graphId++;
 };
 StorageGraph.prototype.getCapacity = function () {
-    return Math.min(this.buildings.reduce(0, (b, t) => b.block.itemCapacity + t), 200000)
+    return Math.min(this.itemCapacity, 1000000)
 };
 StorageGraph.prototype.add = function (entity) {
     if (entity.getGraph() != this) {
@@ -23,6 +24,7 @@ StorageGraph.prototype.add = function (entity) {
         entity.setGraph(this);
         entity.items = this.items;
         this.buildings.add(entity);
+        this.itemCapacity += entity.block.itemCapacity
     }
 };
 StorageGraph.prototype.addGraph = function (graph) {
@@ -38,20 +40,21 @@ StorageGraph.prototype.addGraph = function (graph) {
         this.add(b);
     });
 };
-StorageGraph.prototype.reflow = function (entity) {
-    this.queue.clear();
-    this.queue.addLast(entity)
-    this.closedSet.clear()
-    while(this.queue.size > 0){
-        var child = this.queue.removeFirst();
-        this.add(child);
-        for(let next in child.getStorageConnections()){
-            if(this.closedSet.add(next.pos())){
-                this.queue.addLast(next);
-            }
-        }
-    }
-};
+// i have no idea why this exists
+// StorageGraph.prototype.reflow = function (entity) {
+//     this.queue.clear();
+//     this.queue.addLast(entity)
+//     this.closedSet.clear()
+//     while(this.queue.size > 0){
+//         var child = this.queue.removeFirst();
+//         this.add(child);
+//         for(let next in child.getStorageConnections()){
+//             if(this.closedSet.add(next.pos())){
+//                 this.queue.addLast(next);
+//             }
+//         }
+//     }
+// };
 StorageGraph.prototype.remove = function (entity) {
     entity.getStorageConnections().each(other => {
         if(other.getGraph() != this) return;
@@ -78,7 +81,7 @@ StorageGraph.prototype.remove = function (entity) {
             if(this.items.has(item)){
                 graph.items.add(item, Math.min(this.items.get(item) * percent, graphCap))
             }
-        })
+        });
     });
 };
 
