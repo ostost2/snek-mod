@@ -8,12 +8,11 @@ function StorageGraph(self) {
     this.queue = new Queue();
     this.closedSet = new IntSet();
     this.buildings = new Seq();
-    // evil hack
     this.items = new ItemModule();
     this.graphId = graphId++;
 };
 StorageGraph.prototype.getCapacity = function () {
-    return this.buildings.reduce(0, (b, t) => b.block.itemCapacity + t)
+    return Math.min(this.buildings.reduce(0, (b, t) => b.block.itemCapacity + t), 200000)
 };
 StorageGraph.prototype.add = function (entity) {
     if (entity.getGraph() != this) {

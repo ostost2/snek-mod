@@ -77,15 +77,15 @@ let chainContainerBuilding = () => extend(Building, {
         }
     },
 
-    explosionItemCap(){
-        return this._storageGraph != null ? Math.min(this.itemCapacity/60, 6) : this.itemCapacity
-    },
+    // explosionItemCap(){
+    //     return this._storageGraph != null ? Math.min(this.itemCapacity/60, 6) : this.itemCapacity
+    // },
     onDestroyed(){
         this.super$onDestroyed();
 
         if(this._storageGraph == null) return;
 
-        let percent = this.itemCapacity / this._storageGraph.getCapacity();
+        let percent = this.block.itemCapacity / this._storageGraph.getCapacity();
 
         Vars.content.items().each(item => {
             if(this.items.has(item)){
