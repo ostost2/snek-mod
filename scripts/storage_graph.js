@@ -16,9 +16,7 @@ function StorageGraph() {
     this.graphId = graphId++;
 
     this.hasCore = false;
-    this.coreCapacity = 0; // Cached cap
-
-    // this.coreWritten = false; // For writing
+    this.coreCapacity = 0; 
 };
 StorageGraph.prototype.getCapacity = function() {
     return Math.min(this.itemCapacity, MAX_CAPACITY);
@@ -37,17 +35,20 @@ StorageGraph.prototype.add = function(entity) {
         entity.items = this.items;
 
         if (entity instanceof CoreBlock.CoreBuild){
-            if(!this.hasCore){ // If graph already has a core, then all cores have already been accounted for
-                // TODO: cleanup
+            if(!this.hasCore){ 
                 this.hasCore = true;
                 this.coreCapacity += entity.block.itemCapacity;
                 
-                // very laggy
                 Vars.state.teams.cores(entity.team).each(core => {
                     if(entity == core) return;
 
                     this.coreCapacity += core.block.itemCapacity;
-                    this.reflow(core);
+                    
+                    if (core.getGraph() != null) {
+                        this.addGraph(core.getGraph());
+                    } else {
+                        this.reflow(core);
+                    }
                 });
             }
         } else {
@@ -74,7 +75,7 @@ StorageGraph.prototype.addGraph = function(graph) {
         this.add(b);
     });
 };
-// Currently nothing using this, use when removing?
+
 StorageGraph.prototype.reflow = function(entity) {
     this.queue.clear();
     this.queue.addLast(entity)
@@ -89,6 +90,7 @@ StorageGraph.prototype.reflow = function(entity) {
         });
     }
 };
+
 StorageGraph.prototype.remove = function(entity) {
     entity.getStorageConnections().each(other => {
         if(other.getGraph() != this) return;
@@ -108,12 +110,6 @@ StorageGraph.prototype.remove = function(entity) {
                 }
             });
         }
-
-        // if(graph.hasCore){
-        //     Vars.state.teams.cores(other.team).each(core => {
-        //         core.storageCapacity = this.getTotalCapacity();
-        //     });
-        // }
         
         let graphCap = graph.getTotalCapacity();
         let percent = graphCap / (this.getTotalCapacity() - entity.block.itemCapacity);
@@ -125,8 +121,6 @@ StorageGraph.prototype.remove = function(entity) {
     });
 };
 
-// Centralized handling allows for clean core support
-// TODO: consider if revealed when using fx
 StorageGraph.prototype.handleItem = function(source, item) {
     if (this.items.get(item) < this.getTotalCapacity()) {
         this.items.add(item, 1);
@@ -155,7 +149,7 @@ StorageGraph.prototype.handleStack = function(item, amount, source) {
         this.items.add(item, Math.min(amount, space));
     }
 };
-StorageGraph.prototype.getMaximumAccepted = function() { // TODO: consider core incineration
+StorageGraph.prototype.getMaximumAccepted = function() { 
     return this.getTotalCapacity();
 }
 

@@ -72,15 +72,13 @@ let chainMethods = {
         });
     },
 
-    // TODO: do not create a new seq every time
     getStorageConnections() {
-        return this.proximity.select(boolf(other => other != null && other.team == this.team && this.connectsStorageTo(other)));
+        return this.proximity.select(boolf(other => other != null && other.team === this.team && this.connectsStorageTo(other)));
     },
-    // Assume all cores have StorageGraph
     connectsStorageTo(other) {
-        return other.block.coreMerge || other.block instanceof CoreBlock;
+        return other != null && typeof other.getGraph === 'function';
     },
-    // hack
+    
     writeBase(write){
         let writeVisibility = Vars.state.rules.fog && this.visibleFlags != 0;
 
@@ -92,11 +90,9 @@ let chainMethods = {
 
         write.b(this.moduleBitmask());
 
-        // relevant code here
         let percent = 1;
         if(this._storageGraph != null){
-            // let storageCapacity = this instanceof CoreBlock.CoreBuild ? this._storageGraph.coreCapacity : this.block.itemCapacity;
-            let storageCapacity = this.block.itemCapacity; // THIS MIGHT AND PROBABLY WILL LOSE ITEMS SOMETIMES WHEN LOADING MAPS WITH MULTIPLE CORES
+            let storageCapacity = this.block.itemCapacity; 
             percent = storageCapacity / this._storageGraph.getTotalCapacity();
         }
         let items = new ItemModule();
@@ -106,11 +102,6 @@ let chainMethods = {
             }
         });
         items.write(write);
-
-        // if(this.timeScale != 1){
-        //     write.f(timeScale);
-        //     write.f(timeScaleDuration);
-        // }
 
         if(this.lastDisabler != null && this.lastDisabler.isValid()){
             write.i(this.lastDisabler.pos());
@@ -125,89 +116,49 @@ let chainMethods = {
     },
 };
 
-/**
- * The extendable storage buildtype, extending building disallows connecting to core behavior (see https://github.com/Anuken/Mindustry/blob/2ad41a904753a47f6fb1a7b64dbea46204ce207e/core/src/mindustry/world/blocks/storage/CoreBlock.java#L788C1-L788C85 )
- */
-let chainContainerBuilding = (block) => () => {
-    let build = extend(Building, Object.assign({}, chainMethods, {
-        // TODO
-        // pickedUp(){
+let chainContainerBuilding = (block) => () => extend(StorageBlock.StorageBuild, block, Object.assign({}, chainMethods, {
+    moduleBitmask() {
+        return 1;
+    },
+    canPickup() {
+        return false;
+    },
+    onDestroyed(){
+        this.super$onDestroyed();
 
-        // },
-        moduleBitmask() {
-            return 1;
-        },
-        canPickup() {
-            return false;
-        },
-        // big boom
-        // explosionItemCap(){
-        //     return this._storageGraph != null ? Math.min(this.itemCapacity/60, 6) : this.itemCapacity
-        // },
-        onDestroyed(){
-            this.super$onDestroyed();
+        if(this._storageGraph == null) return;
 
-            if(this._storageGraph == null) return;
-
-            let percent = this.block.itemCapacity / this._storageGraph.getCapacity();
-            
-            Vars.content.items().each(item => {
-                if(this.items.has(item)){
-                    let amount = this.items.get(item) * percent;
-
-                    if(this.team == Vars.state.rules.defaultTeam && Vars.state.isCampaign()){
-                        Vars.state.rules.sector.info.handleCoreItem(item, -amount);
-                    }
-                    this.items.remove(item, amount);
-                }
-            });
-        },
-
-        getMaximumAccepted() {
-            if(this._storageGraph != null) return this._storageGraph.getMaximumAccepted();
-
-            return this.itemCapacity;
-        },
-    }));
-    build.block = block;
-    return build;
-};
-
-
-/**
- * Currently very hacky, storageCapacity should be a shared resource
- */
-let chainCoreBuilding = (block) => () => extend(CoreBlock.CoreBuild, block, Object.assign({}, chainMethods, {
-    // created(){
-    //     this.super$created();
-
-    // },
-
-    onProximityUpdate(){
-        // this.noSleep();
+        let percent = this.block.itemCapacity / this._storageGraph.getTotalCapacity();
         
-        // Vars.state.teams.registerCore(this);
+        Vars.content.items().each(item => {
+            if(this.items.has(item)){
+                let amount = this.items.get(item) * percent;
 
-        // if(this._storageGraph == null) {
-        //     let cap = 0;
-        //     Vars.state.teams.cores(this.team).each(core => {
-        //         core.items = this.items;
-        //         cap += core.block.itemCapacity;
-        //     });
-        //     this.storageCapacity = cap;
-        // }
+                if(this.team === Vars.state.rules.defaultTeam && Vars.state.isCampaign()){
+                    Vars.state.rules.sector.info.handleCoreItem(item, -amount);
+                }
+                this.items.remove(item, amount);
+            }
+        });
+    },
 
-        this.super$onProximityUpdate(); // TODO: loop through cores once
+    getMaximumAccepted() {
+        if(this._storageGraph != null) return this._storageGraph.getMaximumAccepted();
 
-        // superclass fucks up the storageCapacity
+        return this.itemCapacity;
+    },
+}));
+
+let chainCoreBuilding = (block) => () => extend(CoreBlock.CoreBuild, block, Object.assign({}, chainMethods, {
+    onProximityUpdate(){
+        this.super$onProximityUpdate(); 
+
         if(this._storageGraph != null) {
             Vars.state.teams.cores(this.team).each(core => {
                 core.storageCapacity = this._storageGraph.getTotalCapacity();
             });
             return;
         }
-
-        // only one graph for cores must exist
 
         let graphCore = Vars.state.teams.cores(this.team).find(c => c != this && c.getGraph() != null);
         if(graphCore != null){
@@ -216,10 +167,9 @@ let chainCoreBuilding = (block) => () => extend(CoreBlock.CoreBuild, block, Obje
             
             graphCore.getGraph().addGraph(graph);
         }
-        // if nothing is connected, then superclass did it properly
     },
 
-    getMaximumAccepted() { // TODO: consider core incineration
+    getMaximumAccepted() { 
         if(this._storageGraph != null) return this._storageGraph.getMaximumAccepted();
 
         return this.storageCapacity;

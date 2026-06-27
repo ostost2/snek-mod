@@ -1,8 +1,17 @@
+"use strict";
 let {chainContainerBuilding, chainCoreBuilding} = require("chain_buildings");
 
-Blocks.container.buildType = chainContainerBuilding(Blocks.container);
-Blocks.vault.buildType = chainContainerBuilding(Blocks.vault);
-
-Blocks.coreShard.buildType = chainCoreBuilding(Blocks.coreShard);
-Blocks.coreFoundation.buildType = chainCoreBuilding(Blocks.coreFoundation);
-Blocks.coreNucleus.buildType = chainCoreBuilding(Blocks.coreNucleus);
+Events.on(EventType.ClientLoadEvent, cons(e => {
+    Vars.content.blocks().each(block => {
+        if (block instanceof StorageBlock) {
+            
+            block.coreMerge = true;
+            
+            if (block instanceof CoreBlock) {
+                block.buildType = chainCoreBuilding(block);
+            } else {
+                block.buildType = chainContainerBuilding(block);
+            }
+        }
+    });
+}));
